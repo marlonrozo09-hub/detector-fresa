@@ -85,7 +85,7 @@ st.markdown("""
 with st.sidebar:
     st.title("Semillero SIPROINT - UNAD")
     st.markdown("**Proyecto de Grado:**")
-    st.markdown("Clasificador de imágenes foliares en fresa")
+    st.markdown("Clasificador de imágenes de la hoja de fresa para determinar enfermedades como la viruela, antracnosis, oídio o desconocidas, usando el algoritmo KNN a campo abierto en Pamplona, Norte de Santander.")
     st.markdown("**Ubicación:** Pamplona, Norte de Santander")
     st.markdown("**Algoritmo:** K-Nearest Neighbors (KNN)")
     st.markdown("**Descriptores:** Color (HSV) + Textura (GLCM)")
