@@ -52,7 +52,7 @@ except Exception as e:
     st.error(f"Error al cargar los archivos .pkl: {e}")
     st.stop()
 
-# 5. Pipeline de visión por computador
+# 5. Pipeline de procesamiento
 def segmentar_hoja(img_rgb):
     hsv = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2HSV)
     lim_inf = np.array([15, 30, 30])
@@ -87,7 +87,7 @@ def extraer_vector(img_rgb):
 
     vector = [h_media, h_std, s_media, s_std, v_media, v_std, contraste, disimilitud, homogeneidad, energia, correlacion]
     nombres = ['H Media', 'H Desv', 'S Media', 'S Desv', 'V Media', 'V Desv', 'Contraste', 'Disimilitud', 'Homogeneidad', 'Energía', 'Correlación']
-    return vector, nombres, mascara
+    return vector, nombres
 
 # 6. Módulo de carga de imagen
 archivo_subido = st.file_uploader(
@@ -99,28 +99,23 @@ if archivo_subido is not None:
     imagen_pil = Image.open(archivo_subido).convert('RGB')
     img_np = np.array(imagen_pil)
 
+    # Mostrar únicamente la hoja original cargada
+    st.subheader("Hoja Ingresada")
+    st.image(imagen_pil, use_container_width=True)
+
     with st.spinner("Extrayendo descriptores y clasificando..."):
-        descriptores, nombres_desc, mascara = extraer_vector(img_np)
+        descriptores, nombres_desc = extraer_vector(img_np)
         vector_escalado = scaler.transform([descriptores])
         prediccion = modelo.predict(vector_escalado)[0]
         probabilidades = modelo.predict_proba(vector_escalado)[0]
         clases_modelo = list(modelo.classes_)
-
-    # Visualización en columnas
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("Hoja Ingresada")
-        st.image(imagen_pil, use_container_width=True)
-    with col2:
-        st.subheader("Segmentación Folio-Fondo")
-        st.image(mascara, caption="Máscara binaria HSV", use_container_width=True)
 
     st.divider()
 
     # Diagnóstico Principal
     st.subheader(f"Diagnóstico Principal: **{prediccion}**")
 
-    # 7. LAS 5 CATEGORÍAS COMPLETAS OBLIGATORIAS
+    # Las 5 categorías oficiales completas
     todas_las_categorias = [
         "Sana",
         "Viruela",
@@ -129,15 +124,12 @@ if archivo_subido is not None:
         "No reconocida / Dudosa"
     ]
 
-    # Diccionario con lo que calculó el modelo
     dict_modelo = {cls: prob * 100 for cls, prob in zip(clases_modelo, probabilidades)}
 
     st.write("### Nivel de concordancia por patología:")
     
-    # Construcción de la tabla completa fija
     filas_tabla = []
     for cat in todas_las_categorias:
-        # Busca si la clase está en el modelo (o una versión que contenga el nombre)
         prob_calculada = 0.0
         for k, v in dict_modelo.items():
             if cat.lower() in k.lower():
@@ -149,14 +141,13 @@ if archivo_subido is not None:
             "Certeza (%)": round(prob_calculada, 1)
         })
         
-        # Muestra la viñeta con el formato exacto que buscas
         st.markdown(f"* **{cat}:** {prob_calculada:.1f}%")
 
-    # Gráfico de barras horizontal con todas las categorías
+    # Gráfico de barras horizontal
     df_grafico = pd.DataFrame(filas_tabla).set_index("Patología")
     st.bar_chart(df_grafico)
 
-    # 8. Desplegable técnico con los 11 descriptores
+    # Desplegable técnico con los 11 descriptores
     with st.expander("Ver vector de características extraído (11 descriptores)"):
         df_desc = pd.DataFrame({
             "Descriptor": nombres_desc,
