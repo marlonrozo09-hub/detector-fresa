@@ -6,16 +6,18 @@ import joblib
 from PIL import Image
 from skimage.feature import graycomatrix, graycoprops
 
-# 1. Configuración de página
+# 1. Configuración de la pestaña del navegador
 st.set_page_config(
-    page_title="Diagnóstico Foliar de Fresa - Pamplona",
+    page_title="Clasificador KNN Hojas de Fresa - Pamplona",
     page_icon="🍓",
     layout="wide"
 )
 
-# 2. Barra lateral con información del proyecto UNAD
+# 2. Barra lateral alineada al proyecto institucional UNAD
 with st.sidebar:
-    st.title("Proyecto Fitosanitario")
+    st.title("Semillero SIPROINT - UNAD")
+    st.markdown("**Proyecto de Grado:**")
+    st.markdown("Clasificador de imágenes foliares en fresa")
     st.markdown("**Ubicación:** Pamplona, Norte de Santander")
     st.markdown("**Algoritmo:** K-Nearest Neighbors (KNN)")
     st.markdown("**Descriptores:** Color (HSV) + Textura (GLCM)")
@@ -31,14 +33,12 @@ with st.sidebar:
     st.divider()
     st.caption("Prototipo de clasificación foliar desarrollado con fines de investigación.")
 
-# 3. Título principal
-st.title("🍓 Sistema de Diagnóstico Fitosanitario en Hojas de Fresa")
-st.write(
-    "Herramienta computacional para la clasificación de patologías foliares "
-    "mediante procesamiento digital de imágenes y modelo KNN."
-)
+# 3. Título principal oficial del proyecto
+st.title("🍓 Clasificador de Imágenes de la Hoja de Fresa")
+st.subheader("Detección de viruela, antracnosis, oídio o imágenes no reconocidas mediante KNN")
+st.caption("Prototipo para cultivos a campo abierto en el municipio de Pamplona, Norte de Santander.")
 
-# 4. Cargar modelo serializado
+# 4. Carga de los archivos serializados
 @st.cache_resource
 def cargar_archivos():
     modelo = joblib.load("modelo_knn_fresa.pkl")
@@ -47,12 +47,12 @@ def cargar_archivos():
 
 try:
     modelo, scaler = cargar_archivos()
-    st.sidebar.success("Modelo KNN cargado correctamente")
+    st.sidebar.success("Modelo KNN activo y conectado")
 except Exception as e:
     st.error(f"Error al cargar los archivos .pkl: {e}")
     st.stop()
 
-# 5. Pipeline de procesamiento
+# 5. Pipeline de visión por computador (en segundo plano)
 def segmentar_hoja(img_rgb):
     hsv = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2HSV)
     lim_inf = np.array([15, 30, 30])
@@ -89,9 +89,9 @@ def extraer_vector(img_rgb):
     nombres = ['H Media', 'H Desv', 'S Media', 'S Desv', 'V Media', 'V Desv', 'Contraste', 'Disimilitud', 'Homogeneidad', 'Energía', 'Correlación']
     return vector, nombres
 
-# 6. Módulo de carga de imagen
+# 6. Interfaz de carga
 archivo_subido = st.file_uploader(
-    "Cargue o capture una imagen foliar (.jpg, .jpeg, .png)",
+    "Cargue o capture una fotografía de la hoja (.jpg, .jpeg, .png)",
     type=["jpg", "jpeg", "png"]
 )
 
@@ -99,11 +99,11 @@ if archivo_subido is not None:
     imagen_pil = Image.open(archivo_subido).convert('RGB')
     img_np = np.array(imagen_pil)
 
-    # Mostrar únicamente la hoja original cargada
+    # Vista previa de la fotografía real
     st.subheader("Hoja Ingresada")
     st.image(imagen_pil, use_container_width=True)
 
-    with st.spinner("Extrayendo descriptores y clasificando..."):
+    with st.spinner("Extrayendo descriptores y clasificando con KNN..."):
         descriptores, nombres_desc = extraer_vector(img_np)
         vector_escalado = scaler.transform([descriptores])
         prediccion = modelo.predict(vector_escalado)[0]
@@ -113,44 +113,4 @@ if archivo_subido is not None:
     st.divider()
 
     # Diagnóstico Principal
-    st.subheader(f"Diagnóstico Principal: **{prediccion}**")
-
-    # Las 5 categorías oficiales completas
-    todas_las_categorias = [
-        "Sana",
-        "Viruela",
-        "Antracnosis",
-        "Oídio",
-        "No reconocida / Dudosa"
-    ]
-
-    dict_modelo = {cls: prob * 100 for cls, prob in zip(clases_modelo, probabilidades)}
-
-    st.write("### Nivel de concordancia por patología:")
-    
-    filas_tabla = []
-    for cat in todas_las_categorias:
-        prob_calculada = 0.0
-        for k, v in dict_modelo.items():
-            if cat.lower() in k.lower():
-                prob_calculada = v
-                break
-
-        filas_tabla.append({
-            "Patología": cat,
-            "Certeza (%)": round(prob_calculada, 1)
-        })
-        
-        st.markdown(f"* **{cat}:** {prob_calculada:.1f}%")
-
-    # Gráfico de barras horizontal
-    df_grafico = pd.DataFrame(filas_tabla).set_index("Patología")
-    st.bar_chart(df_grafico)
-
-    # Desplegable técnico con los 11 descriptores
-    with st.expander("Ver vector de características extraído (11 descriptores)"):
-        df_desc = pd.DataFrame({
-            "Descriptor": nombres_desc,
-            "Valor Obtenido": [round(val, 4) for val in descriptores]
-        })
-        st.dataframe(df_desc, use_container_width=True)
+    st.subheader(f"Diagnóstico Principal:
