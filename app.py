@@ -3,90 +3,156 @@ import cv2
 import numpy as np
 import pandas as pd
 import joblib
+import time
 from PIL import Image
 from skimage.feature import graycomatrix, graycoprops
 
 # 1. Configuración de página
 st.set_page_config(
-    page_title="Clasificador KNN Hojas de Fresa - Pamplona",
-    page_icon="🍓",
+    page_title="DSP & Vision Lab | Telemetría Foliar UNAD",
+    page_icon="📡",
     layout="wide"
 )
 
-# 2. Inyección de estilos CSS personalizados para color y diseño moderno
+# 2. Inyección CSS: Dashboard de Ingeniería de Telecomunicaciones & DSP
 st.markdown("""
     <style>
-    /* Estilo del encabezado principal */
-    .header-box {
-        background: linear-gradient(135deg, #1b4332 0%, #2d6a4f 50%, #c1121f 100%);
-        padding: 24px 28px;
-        border-radius: 14px;
-        color: white;
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap');
+
+    html, body, [class*="css"] {
+        font-family: 'Inter', sans-serif;
+    }
+
+    code, .stMetric, .telemetry-val {
+        font-family: 'JetBrains Mono', monospace !important;
+    }
+
+    /* Banner Superior Estilo Rack / Telemetría */
+    .telecom-banner {
+        background: linear-gradient(135deg, #0a0f1d 0%, #0d1b2a 50%, #1b263b 100%);
+        border: 1px solid #1f3a5f;
+        border-left: 6px solid #00f5d4;
+        border-radius: 12px;
+        padding: 22px 28px;
         margin-bottom: 25px;
-        box-shadow: 0 4px 14px rgba(0,0,0,0.12);
-    }
-    .header-box h1 {
-        color: #ffffff !important;
-        font-size: 2.1rem;
-        font-weight: 700;
-        margin-bottom: 6px;
-    }
-    .header-box p {
-        color: #e9ecef !important;
-        font-size: 1.05rem;
-        margin-bottom: 0px;
+        box-shadow: 0 8px 32px rgba(0, 245, 212, 0.08);
     }
 
-    /* Tarjetas de resultados */
-    .diag-card {
-        background: #f8fafc;
-        border-left: 6px solid #2d6a4f;
-        padding: 16px 20px;
-        border-radius: 10px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    .telecom-title {
+        color: #ffffff;
+        font-size: 1.9rem;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
     }
 
-    /* Estilo del botón de carga */
-    .stFileUploader label {
-        font-size: 1.1rem;
+    .telecom-sub {
+        color: #00b4d8;
+        font-size: 0.95rem;
         font-weight: 600;
-        color: #1b4332;
+        margin-top: 6px;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+    }
+
+    .telecom-badge-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 14px;
+    }
+
+    .badge-chip {
+        background: rgba(0, 180, 216, 0.12);
+        color: #90e0ef;
+        border: 1px solid rgba(0, 180, 216, 0.35);
+        border-radius: 6px;
+        padding: 4px 10px;
+        font-size: 0.78rem;
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Caja de Diagnóstico Principal - Tipo Instrumento Digital */
+    .verdict-box {
+        background: #0b1320;
+        border: 1px solid #233554;
+        border-radius: 12px;
+        padding: 20px 24px;
+        margin-bottom: 22px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+
+    .verdict-header {
+        font-size: 0.75rem;
+        color: #64748b;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        font-weight: 700;
+    }
+
+    .verdict-title {
+        font-size: 2.1rem;
+        font-weight: 800;
+        margin: 6px 0;
+    }
+
+    /* Canales de Detección */
+    .channel-row {
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin-bottom: 8px;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# 3. Barra lateral estilizada con información del proyecto UNAD
+# 3. Sidebar Técnico - Nodo de Control
 with st.sidebar:
-    st.markdown("### 🏛️ Semillero SIPROINT")
-    st.caption("Universidad Nacional Abierta y a Distancia (UNAD)")
+    st.markdown("### 🛰️ NODO DE CONTROL SIPROINT")
+    st.caption("UNAD · Escuela de Ciencias Básicas, Tecnología e Ingeniería (ECBTI)")
     st.markdown("---")
-    st.markdown("**Proyecto:** Clasificador de hojas de fresa")
-    st.markdown("**Zona:** Pamplona, Norte de Santander")
-    st.markdown("**Modelo:** K-Nearest Neighbors (KNN)")
-    st.markdown("**Pipeline:** Color HSV + Textura GLCM")
+    
+    st.markdown("**📡 ENTORNO DE TELECOMUNICACIONES**")
+    st.markdown("- **Estación:** Pamplona, N. de S.")
+    st.markdown("- **Topología:** Muestreo a Campo Abierto")
+    st.markdown("- **Motor DSP:** Segmentación HSV + GLCM")
+    st.markdown("- **Clasificador:** KNN (K-Nearest Neighbors)")
+    st.markdown("- **Pipeline:** 11 Descriptores Espaciales")
+    
     st.markdown("---")
-    st.subheader("Categorías Evaluadas")
+    st.markdown("**📊 ESPECTRO FITOSANITARIO**")
     st.markdown("""
-    - 🟢 **Sana**
-    - 🟣 **Viruela** (*Ramularia tulasnei*)
-    - 🟤 **Antracnosis** (*Colletotrichum spp.*)
-    - ⚪ **Oídio** (*Podosphaera aphanis*)
-    - ❓ **No reconocida / Dudosa**
+    `CH_01` 🟢 **Sana**  
+    `CH_02` 🟣 **Viruela** *(R. tulasnei)*  
+    `CH_03` 🟤 **Antracnosis** *(Colletotrichum)*  
+    `CH_04` ⚪ **Oídio** *(P. aphanis)*  
+    `CH_05` ❓ **No reconocida / Dudosa**
     """)
     st.markdown("---")
-    st.caption("Prototipo de clasificación foliar desarrollado con fines de investigación.")
+    st.caption("SYS_STATUS: ONLINE | INTERFACE: STREAMLIT CORE")
 
-# 4. Banner principal con color y degradado
+# 4. Banner Superior de Ingeniería
 st.markdown("""
-    <div class="header-box">
-        <h1>🍓 Clasificador de Imágenes de la Hoja de Fresa</h1>
-        <p>Detección de viruela, antracnosis, oídio o no reconocidas mediante procesamiento de color, textura y algoritmo KNN</p>
-        <p style="font-size: 0.88rem; opacity: 0.9; margin-top: 6px;">Cultivos a campo abierto · Pamplona, Norte de Santander</p>
+    <div class="telecom-banner">
+        <div class="telecom-title">
+            <span>📡 SISTEMA DE VISIÓN COMPUTACIONAL & TELEMETRÍA FOLIAR</span>
+        </div>
+        <div class="telecom-sub">Clasificador Digital de Patologías Foliares · Cultivos de Fresa</div>
+        <div class="telecom-badge-bar">
+            <span class="badge-chip">NODE: PAMPLONA-AGRO-01</span>
+            <span class="badge-chip">DSP: HSV_COLOR_SPACE</span>
+            <span class="badge-chip">FEATURE_ENGINE: GLCM_11D</span>
+            <span class="badge-chip">AI_CORE: SCIKIT-KNN</span>
+            <span class="badge-chip">UNAD / SIPROINT</span>
+        </div>
     </div>
 """, unsafe_allow_html=True)
 
-# 5. Cargar modelos serializados (.pkl)
+# 5. Carga de Pesos Serializados
 @st.cache_resource
 def cargar_archivos():
     modelo = joblib.load("modelo_knn_fresa.pkl")
@@ -95,12 +161,12 @@ def cargar_archivos():
 
 try:
     modelo, scaler = cargar_archivos()
-    st.sidebar.success("Modelo KNN cargado y activo")
+    st.sidebar.success("⚡ ENLACE DE PARÁMETROS ACTIVO (.PKL)")
 except Exception as e:
-    st.error(f"Error al cargar los archivos .pkl: {e}")
+    st.error(f"❌ FALLA EN ENLACE SERIALIZADO (.PKL): {e}")
     st.stop()
 
-# 6. Pipeline de visión por computador
+# 6. Pipeline DSP (Extracción de Características)
 def segmentar_hoja(img_rgb):
     hsv = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2HSV)
     lim_inf = np.array([15, 30, 30])
@@ -134,58 +200,68 @@ def extraer_vector(img_rgb):
     correlacion  = float(np.mean(graycoprops(glcm, 'correlation')))
 
     vector = [h_media, h_std, s_media, s_std, v_media, v_std, contraste, disimilitud, homogeneidad, energia, correlacion]
-    nombres = ['H Media', 'H Desv', 'S Media', 'S Desv', 'V Media', 'V Desv', 'Contraste', 'Disimilitud', 'Homogeneidad', 'Energía', 'Correlación']
+    nombres = ['H_MEAN', 'H_STD', 'S_MEAN', 'S_STD', 'V_MEAN', 'V_STD', 'GLCM_CONTRAST', 'GLCM_DISSIMILARITY', 'GLCM_HOMOGENEITY', 'GLCM_ENERGY', 'GLCM_CORRELATION']
     return vector, nombres
 
-# 7. Carga de archivo
+# 7. Ingesta de Datos del Sensor Óptico
+st.markdown("#### 📥 INGESTA DE TRAMA ÓPTICA (SENSOR / CÁMARA)")
 archivo_subido = st.file_uploader(
-    "Seleccione o capture una fotografía de la hoja de fresa:",
+    "Cargar cuadro foliar RGB (Formato RAW/JPG/PNG):",
     type=["jpg", "jpeg", "png"]
 )
 
 if archivo_subido is not None:
-    col_img, col_diag = st.columns([1, 1.2], gap="large")
-
+    t_inicio = time.time()
     imagen_pil = Image.open(archivo_subido).convert('RGB')
     img_np = np.array(imagen_pil)
+    alto, ancho, _ = img_np.shape
 
-    with col_img:
-        st.subheader("Fotografía Ingresada")
+    # Panel de Dos Columnas: Frame Óptico vs Telemetría
+    col_frame, col_telemetria = st.columns([1, 1.3], gap="large")
+
+    with col_frame:
+        st.markdown("##### 🔲 BUFFER DEL FRAME CAPTURADO")
         st.image(imagen_pil, use_container_width=True)
+        st.caption(f"Resolución nativa: {ancho}x{alto} px | Canales: RGB_8BIT | Interpolación: INTER_AREA")
 
-    with st.spinner("Analizando descriptores de color y textura con KNN..."):
+    with st.spinner("Procesando señal digital y vectorizando descriptores..."):
         descriptores, nombres_desc = extraer_vector(img_np)
         vector_escalado = scaler.transform([descriptores])
         prediccion = modelo.predict(vector_escalado)[0]
         probabilidades = modelo.predict_proba(vector_escalado)[0]
         clases_modelo = list(modelo.classes_)
+        latencia = (time.time() - t_inicio) * 1000
 
-    with col_diag:
-        # Colores e íconos dinámicos según el diagnóstico emitido
-        color_borde = "#2d6a4f" if "sana" in prediccion.lower() else "#c1121f"
-        icono = "🌿" if "sana" in prediccion.lower() else "🔍"
+    with col_telemetria:
+        # Colores de Veredicto
+        es_sana = "sana" in prediccion.lower()
+        color_neon = "#00f5d4" if es_sana else "#ff0054"
+        icono_telecom = "🟢 OPTIMAL_HEALTH" if es_sana else "🔴 PATHOLOGY_ALERT"
 
         st.markdown(f"""
-            <div style="background: #ffffff; border-left: 6px solid {color_borde}; padding: 18px 22px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 20px;">
-                <span style="font-size: 0.95rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Resultado de Clasificación</span>
-                <h2 style="color: #0f172a; margin: 4px 0 0 0; font-size: 1.8rem;">{icono} {prediccion}</h2>
+            <div class="verdict-box" style="border-left: 6px solid {color_neon};">
+                <div class="verdict-header">TELEMETRY_CLASSIFICATION // TARGET_STATUS</div>
+                <div class="verdict-title" style="color: {color_neon};">{prediccion.upper()}</div>
+                <div style="font-size: 0.82rem; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">
+                    SIGNAL: {icono_telecom} | LATENCY: {latencia:.1f} ms | CONF_METRIC: KNN_SOFTMAX
+                </div>
             </div>
         """, unsafe_allow_html=True)
 
-        st.markdown("#### Nivel de concordancia por categoría:")
+        st.markdown("##### 📶 DENSIDAD ESPECTRAL DE PROBABILIDAD (CHANNELS 1-5)")
 
         todas_las_categorias = [
-            ("Sana", "🟢"),
-            ("Viruela", "🟣"),
-            ("Antracnosis", "🟤"),
-            ("Oídio", "⚪"),
-            ("No reconocida / Dudosa", "❓")
+            ("Sana", "CH_01"),
+            ("Viruela", "CH_02"),
+            ("Antracnosis", "CH_03"),
+            ("Oídio", "CH_04"),
+            ("No reconocida / Dudosa", "CH_05")
         ]
 
         dict_modelo = {cls: prob * 100 for cls, prob in zip(clases_modelo, probabilidades)}
 
         filas_tabla = []
-        for cat, emoji in todas_las_categorias:
+        for cat, ch in todas_las_categorias:
             prob_calculada = 0.0
             for k, v in dict_modelo.items():
                 if cat.lower() in k.lower():
@@ -193,19 +269,36 @@ if archivo_subido is not None:
                     break
 
             filas_tabla.append({
-                "Patología": f"{emoji} {cat}",
-                "Certeza (%)": round(prob_calculada, 1)
+                "Canal": ch,
+                "Patología": cat,
+                "Probabilidad (%)": round(prob_calculada, 2)
             })
 
-            # Barra visual de progreso por categoría
-            st.write(f"**{emoji} {cat}:** `{prob_calculada:.1f}%`")
-            st.progress(int(min(max(prob_calculada, 0), 100)))
+            # Barra de telemetría por canal
+            col_ch1, col_ch2 = st.columns([3, 1])
+            with col_ch1:
+                st.write(f"`{ch}` **{cat}**")
+                st.progress(int(min(max(prob_calculada, 0), 100)))
+            with col_ch2:
+                st.metric(label="", value=f"{prob_calculada:.1f}%")
 
-    # Desplegable técnico con los 11 descriptores
-    st.divider()
-    with st.expander("📊 Ver vector de características extraído (11 descriptores numéricos)"):
-        df_desc = pd.DataFrame({
-            "Descriptor": nombres_desc,
-            "Valor Numérico": [round(val, 4) for val in descriptores]
+    st.markdown("---")
+
+    # Matriz DSP de 11 Descriptores
+    with st.expander("🔬 TELEMETRÍA DSP: VECTOR DE CARACTERÍSTICAS (11D MULTIVARIABLE)"):
+        col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+        col_m1.metric("Hue Mean (H_μ)", f"{descriptores[0]:.2f}")
+        col_m2.metric("Sat Mean (S_μ)", f"{descriptores[2]:.2f}")
+        col_m3.metric("Val Mean (V_μ)", f"{descriptores[4]:.2f}")
+        col_m4.metric("GLCM Contrast", f"{descriptores[6]:.2f}")
+
+        df_telecom = pd.DataFrame({
+            "Descriptor DSP": nombres_desc,
+            "Valor Cuantizado": [round(val, 5) for val in descriptores],
+            "Dominio": [
+                "Colorimétrico HSV", "Colorimétrico HSV", "Colorimétrico HSV", "Colorimétrico HSV",
+                "Colorimétrico HSV", "Colorimétrico HSV", "Espacial / Haralick", "Espacial / Haralick",
+                "Espacial / Haralick", "Espacial / Haralick", "Espacial / Haralick"
+            ]
         })
-        st.dataframe(df_desc, use_container_width=True)
+        st.dataframe(df_telecom, use_container_width=True)
